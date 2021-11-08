@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+npm init -y
+npm install --save-dev express \
+    html-webpack-plugin webpack \
+    webpack-cli \
+    webpack-dev-middleware \
+    webpack-dev-server \
+    html-loader \
+    css-loader \
+    style-loader
+
+node > out_package.json << EOF
+const data = require('./package.json');
+data.scripts.watch = "webpack --watch";
+data.scripts.start = "webpack serve --open";
+data.scripts.server = "node server.js";
+data.scripts.build = "webpack";
+console.log(JSON.stringify(data, null, 2));
+EOF
+rm -f package.json
+mv out_package.json package.json
+
+mkdir src
+touch src/index.js src/styles.css
+
+filename=$(node -e "console.log(require('./package.json').name);")
+
+cat > src/index.html << EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="index.js" defer></script>
+    <title>$filename</title>
+</head>
+<body>
+    
+</body>
+</html>
+EOF
+
+echo "# $filename" >> README.md
+
+cat > webpack.config.js << EOF
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+  mode: 'development',
+  entry: {
+    index: './src/index.js'
+  },
+  devtool: 'inline-source-map',
+  devServer: {
+    static: './dist'
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.html$/i,
+        use: 'html-loader'
+      }
+    ]
+  },
+  plugins: [
+    new HtmlWebpackPlugin(
+      {
+        title: '$filename',
+        template: './src/index.html'
+      }
+    )
+  ],
+  output: {
+    filename: '[name].bundle.js',
+    path: path.resolve(__dirname, 'dist'),
+    clean: true
+  }
+};
+EOF
+
+cat > .gitignore << EOF
+node_modules/**
+EOF
+
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git checkout -b devel
