@@ -1,14 +1,33 @@
 #!/usr/bin/env bash
 
 npm init -y
-npm install --save-dev express \
-    html-webpack-plugin webpack \
+npm install --save-dev \
+    @babel/cli \
+    @babel/core \
+    @babel/eslint-parser \
+    @babel/preset-env \
+    babel-loader \
+    css-loader \
+    cssjson \
+    eslint \
+    eslint-config-prettier \
+    eslint-config-standard \
+    eslint-plugin-import \
+    eslint-plugin-node \
+    eslint-plugin-promise \
+    express \
+    html-loader \
+    html-webpack-plugin \
+    postcss-loader \
+    prettier \
+    raw-loader \
+    sass \
+    sass-loader \
+    style-loader \
+    webpack \
     webpack-cli \
     webpack-dev-middleware \
-    webpack-dev-server \
-    html-loader \
-    css-loader \
-    style-loader
+    webpack-dev-server
 
 node > out_package.json << EOF
 const data = require('./package.json');
@@ -21,7 +40,7 @@ EOF
 rm -f package.json
 mv out_package.json package.json
 
-mkdir src
+mkdir src src/components
 touch src/index.js src/styles.css
 
 filename=$(node -e "console.log(require('./package.json').name);")
@@ -60,14 +79,31 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader']
+        test: /\.(sa|sc|c)ss$/i,
+        use: [
+          "style-loader",
+          "css-loader",
+          "postcss-loader",
+          "sass-loader"
+        ],
       },
       {
         test: /\.html$/i,
-        use: 'html-loader'
-      }
-    ]
+        use: "html-loader",
+      },
+      {
+        test: /\.m?js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              ['@babel/preset-env', { targets: "defaults" }]
+            ],
+          },
+        },
+      },
+    ],
   },
   plugins: [
     new HtmlWebpackPlugin(
@@ -87,6 +123,48 @@ EOF
 
 cat > .gitignore << EOF
 node_modules/**
+EOF
+
+cat > babel.config.json << EOF
+{
+  "presets": ["@babel/preset-env"]
+}
+EOF
+
+cat > .prettierignore << EOF
+# Ignore artifacts:
+build
+coverage
+EOF
+
+cat > .prettierrc.json << EOF
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": null
+  }
+}
+EOF
+
+cat > .eslintrc.json << EOF
+{
+  "env": {
+    "browser": true,
+    "commonjs": true,
+    "es2021": true
+  },
+  "extends": ["standard", "prettier"],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "no-console": "off",
+    "no-lone-blocks": "off",
+    "no-unused-vars": "warn",
+    "import/no-webpack-loader-syntax": "off"
+  },
+  "parser": "@babel/eslint-parser"
+}
 EOF
 
 git init
